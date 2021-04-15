@@ -17,9 +17,10 @@ logging.basicConfig(level=logging.INFO)
 load_dotenv()
 BOT_TOKEN = os.getenv("DISCORD_TOKEN")
 BOT_PREFIX = "$"
+intents = discord.Intents.default()
 
 # Bot initialisation
-bot = commands.Bot(command_prefix=BOT_PREFIX)
+bot = commands.Bot(command_prefix=BOT_PREFIX, intents=intents)
 
 # Stuff copy pasted from discord.py repo xd
 ytdl_format_options = {
@@ -42,6 +43,8 @@ ffmpeg_options = {
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
+
+# Not actually sure why this is necessary
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
@@ -76,21 +79,48 @@ async def on_ready():
     logging.info("---------------------------------------------")
 
 
-@bot.command(brief="Searches YouTube for a video and plays the audio")
-async def play(ctx, *words):
-    search_terms = " ".join(words)
-    video_search = VideosSearch(search_terms, limit = 1)
-    video_result = await video_search.next()
-    video_url = video_result["result"][0]["link"]
+@bot.command(brief="Searches YouTube and allows you to select a video to play")
+async def play(ctx, *, search_terms):
+    videos_search = VideosSearch(search_terms, limit=10)
+    videos_result = await videos_search.next()
 
-    voice_channel = ctx.author.voice.channel
-    await voice_channel.connect()
+    search_results = discord.Embed(title="Search Results")
 
+    description = ""
+    for idx, result in enumerate(videos_result['result']):
+        description += f"`{idx}.` **[{result['title']}]({result['link']}) [{result['duration']}]**\n"
+        description += f"{result['viewCount']['short']} | {result['publishedTime']}\n\n"
+
+    search_results.description = description
+
+    await ctx.send(embed=search_results)
+    await ctx.send("Please type in a number to select a video.")
+
+    selection = await bot.wait_for("message", timeout=60.0)
+    selection_num = int(selection.content)
+    video_url = videos_result['result'][selection_num]['link']
+
+    # Not sure why the before_invoke doesn't do this automatically
+    await ensure_voice(ctx)
+    await ctx.invoke(bot.get_command("playurl"), url=video_url)
+
+
+@bot.command(brief="Plays a video from a URL")
+async def playurl(ctx, url):
     async with ctx.typing():
-        player = await YTDLSource.from_url(video_url, loop=bot.loop, stream=True)
+        player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
         ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
-    await ctx.send(f"Success! Now playing: {video_url}")
+    await ctx.send(f"Success! Now playing: {url}")
+
+
+@bot.command(brief="Changes the player volume")
+async def volume(ctx, volume: int):
+    if ctx.voice_client is None:
+        return await ctx.send("Not connected to a voice channel.")
+
+    ctx.voice_client.source.volume = volume / 100
+    await ctx.send(f"Changed volume to {volume}%")
 
 
 @bot.command(brief="Stops playing")
@@ -98,6 +128,18 @@ async def stop(ctx):
     await ctx.voice_client.disconnect()
 
     await ctx.send("Stopped playing.")
+
+
+@playurl.before_invoke
+async def ensure_voice(ctx):
+    if ctx.voice_client is None:
+        if ctx.author.voice:
+            await ctx.author.voice.channel.connect()
+        else:
+            await ctx.send("You are not connected to a voice channel.")
+            raise commands.CommandError("Author not connected to a voice channel.")
+    elif ctx.voice_client.is_playing():
+        ctx.voice_client.stop()
 
 
 bot.run(BOT_TOKEN)
