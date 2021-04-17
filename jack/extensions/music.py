@@ -54,9 +54,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 class Music(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot  
+        self.bot = bot
 
-    @commands.command(brief="Searches YouTube and allows you to select a video to play")
+    @commands.command(brief="Searches YouTube for a video to play")
     async def play(self, ctx, *, search_terms):
         videos_search = VideosSearch(search_terms, limit=10)
         videos_result = await videos_search.next()

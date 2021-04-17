@@ -1,0 +1,6 @@
+enabled_extensions:
+- music
+prefix: $
+token: XXXYOURBOTTOKENHEREXXX
+token_env_enabled: true
+token_env_key: DISCORD_TOKEN
