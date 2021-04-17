@@ -21,7 +21,7 @@ class Handbook(commands.Cog):
         response = requests.get(f'{API_URL}{course_code}')
         if not response.ok:
             return await ctx.send("Invalid course code.")
-        
+
         data = response.json()
 
 
