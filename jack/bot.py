@@ -41,9 +41,12 @@ async def on_ready():
 
     logging.info("---------------------------------------------")
     logging.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+    logging.info("Loaded extensions:")
+    for extension in bot.extensions:
+        logging.info(f"- {extension}")
     logging.info("Connected to the following guilds:")
     for guild in bot.guilds:
-        logging.info(f"{guild.name} (ID: {guild.id})")
+        logging.info(f"- {guild.name} (ID: {guild.id})")
     logging.info("---------------------------------------------")
 
 

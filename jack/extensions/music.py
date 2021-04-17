@@ -69,7 +69,6 @@ class Music(commands.Cog):
             description += f"{result['viewCount']['short']} | {result['publishedTime']}\n\n"
 
         search_results.description = description
-
         search_results.set_footer(text="Please type in a number to select a video")
 
         await ctx.send(embed=search_results)

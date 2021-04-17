@@ -1,5 +1,6 @@
 enabled_extensions:
 - music
+- handbook
 prefix: $
 token: XXXYOURBOTTOKENHEREXXX
 token_env_enabled: true
