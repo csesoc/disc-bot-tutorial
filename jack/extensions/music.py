@@ -3,6 +3,7 @@ from discord.ext import commands
 
 import asyncio
 import youtube_dl
+import validators
 from youtubesearchpython.__future__ import VideosSearch
 
 # Suppress noise about console usage from errors
@@ -56,12 +57,24 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(brief="Searches YouTube for a video to play")
+    @commands.command(brief="Joins a voice channel")
+    async def join(self, ctx):
+        await Music.ensure_voice(self, ctx)
+
+    @commands.command(brief="Plays a video from YouTube search or URL")
     async def play(self, ctx, *, search_terms):
+        if validators.url(search_terms):
+            video_url = search_terms
+            return await Music.playurl(self, ctx, video_url)
+
         videos_search = VideosSearch(search_terms, limit=10)
         videos_result = await videos_search.next()
 
-        search_results = discord.Embed(title="Search Results")
+        search_results = discord.Embed(title=f"🔎  {search_terms}")
+
+        search_results.set_author(
+            name="Search Results",
+            icon_url="https://i.imgur.com/eRu4yM8.png")
 
         description = ""
         for idx, result in enumerate(videos_result['result']):
@@ -77,42 +90,47 @@ class Music(commands.Cog):
         selection_num = int(selection.content)
         video_url = videos_result['result'][selection_num]['link']
 
-        # Not sure why the before_invoke doesn't do this automatically
-        await Music.ensure_voice(self, ctx)
-        await ctx.invoke(self.bot.get_command("playurl"), url=video_url)
+        await Music.playurl(self, ctx, video_url)
 
-    @commands.command(brief="Plays a video from a URL")
+    @commands.command(brief="Changes the volume")
+    async def volume(self, ctx, volume: int=None):
+        if volume is None:
+            return await ctx.send(f"Current volume is {round(ctx.voice_client.source.volume * 100)}%")
+
+        if ctx.voice_client is None:
+            return await ctx.send("Not connected to a voice channel.")
+        elif ctx.voice_client.source is None:
+            return await ctx.send("Not currently playing.")
+
+        ctx.voice_client.source.volume = volume / 100
+        await ctx.send(f"Changed volume to {volume}%")
+
+    @commands.command(brief="Stops playing and disconnects the bot from voice")
+    async def stop(self, ctx):
+        await ctx.voice_client.disconnect()
+
+        await ctx.send("Stopped playing.")
+
     async def playurl(self, ctx, url):
+        await Music.ensure_voice(self, ctx)
+
         async with ctx.typing():
             player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
             ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
         await ctx.send(f"Success! Now playing: {url}")
 
-    @commands.command(brief="Changes the player volume")
-    async def volume(self, ctx, volume: int):
-        if ctx.voice_client is None:
-            return await ctx.send("Not connected to a voice channel.")
-
-        ctx.voice_client.source.volume = volume / 100
-        await ctx.send(f"Changed volume to {volume}%")
-
-    @commands.command(brief="Stops playing")
-    async def stop(self, ctx):
-        await ctx.voice_client.disconnect()
-
-        await ctx.send("Stopped playing.")
-
-    @playurl.before_invoke
     async def ensure_voice(self, ctx):
-        if ctx.voice_client is None:
-            if ctx.author.voice:
+        if ctx.author.voice:
+            if ctx.voice_client is None:
                 await ctx.author.voice.channel.connect()
             else:
-                await ctx.send("You are not connected to a voice channel.")
-                raise commands.CommandError("Author not connected to a voice channel.")
-        elif ctx.voice_client.is_playing():
-            ctx.voice_client.stop()
+                await ctx.voice_client.move_to(ctx.author.voice.channel)
+            if ctx.voice_client.is_playing():
+                ctx.voice_client.stop()
+        else:
+            await ctx.send("You are not connected to a voice channel.")
+            raise commands.CommandError("Author not connected to a voice channel.")
 
 
 def setup(bot):

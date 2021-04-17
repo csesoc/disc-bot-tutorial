@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO)
 
 # Load settings file and set variables
-with open('./config/settings.yaml') as file:
+with open('./config/settings.yml') as file:
     settings = yaml.full_load(file)
 
 BOT_PREFIX = settings['prefix']
@@ -62,7 +62,7 @@ async def prefix(ctx, prefix):
 
 
 def save_settings():
-    with open('./config/settings.yaml', 'w') as file:
+    with open('./config/settings.yml', 'w') as file:
         yaml.dump(settings, file)
 
 
