@@ -14,7 +14,7 @@ class Handbook(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(brief="Displays information about a certain course")
+    @commands.command(brief="Displays information about a course")
     async def courseinfo(self, ctx, course_code, *options):
         course_code = course_code.upper()
 
@@ -28,6 +28,7 @@ class Handbook(commands.Cog):
         course_info = discord.Embed(
             title=data['title'],
             url=f"{HANDBOOK_URL}{course_code}",
+            colour=0x3a76f8,
             timestamp=datetime.utcnow())
 
         course_info.set_author(
@@ -65,8 +66,6 @@ class Handbook(commands.Cog):
         course_info.add_field(name="Course Outline", value=course_outline_text)
 
         course_info.set_footer(text="Data fetched from Zac's Handbook API")
-
-        course_info.timestamp = datetime.utcnow()
 
 
         await ctx.send(embed=course_info)
