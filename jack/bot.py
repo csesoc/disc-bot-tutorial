@@ -49,7 +49,7 @@ async def on_ready():
 
 @bot.command(brief="Changes the bot prefix")
 @commands.is_owner()
-async def prefix(ctx, *, prefix):
+async def prefix(ctx, prefix):
     bot.command_prefix = prefix
 
     settings['prefix'] = prefix
