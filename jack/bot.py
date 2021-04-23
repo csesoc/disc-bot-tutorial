@@ -50,20 +50,4 @@ async def on_ready():
     logging.info("---------------------------------------------")
 
 
-@bot.command(brief="Changes the command prefix")
-@commands.is_owner()
-async def prefix(ctx, prefix):
-    bot.command_prefix = prefix
-
-    settings['prefix'] = prefix
-    save_settings()
-
-    await ctx.send(f"Prefix set to `{prefix}`")
-
-
-def save_settings():
-    with open('./config/settings.yml', 'w') as file:
-        yaml.dump(settings, file)
-
-
 bot.run(BOT_TOKEN)
